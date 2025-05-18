@@ -8,6 +8,7 @@ body {
   background: linear-gradient(white, #008d5375);
   background-size: 100vw 100vh;
   background-repeat: no-repeat;
+  padding-top: env(safe-area-inset-top, 1rem);
 }
 .material-symbols-outlined {
   vertical-align: middle;
