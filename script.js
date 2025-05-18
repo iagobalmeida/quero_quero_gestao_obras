@@ -1,0 +1,147 @@
+const app = Vue.createApp({
+  data() {
+    return {
+      obras: [],
+      form: this.getEmptyForm(),
+      searchQuery: "",
+      searchDateStart: "",
+        searchDateEnd: "",
+      csvFiles: [],
+      uploadReplace: false,
+      editIndex: null,
+      modalInstance: null,
+      deleteIndex: null,
+      confirmDeleteModal: null,
+      etapas: ["Orçamento", "Fundação", "Alvenaria", "Acabamento", "Finalizada"],
+    };
+  },
+  mounted() {
+    this.loadObras();
+    this.modalInstance = new bootstrap.Modal(document.getElementById("obraModal"));
+    this.confirmDeleteModal = new bootstrap.Modal(document.getElementById("confirmDeleteModal"));
+  },
+  methods: {
+    getEmptyForm() {
+      return {
+        data_registro: new Date().toISOString().split('T')[0],
+        cliente_nome: "",
+        cliente_documento: "",
+        cliente_email: "",
+        cliente_telefone: "",
+        construtor_nome: "",
+        endereco: "",
+        endereco_complemento: "",
+        metragem: "",
+        etapa: "",
+        observacao: ""
+      };
+    },
+    openModal(index = null) {
+      if (index !== null) {
+        this.editIndex = index;
+        this.form = { ...this.obras[index] };
+      } else {
+        this.editIndex = null;
+        this.form = this.getEmptyForm();
+      }
+      this.modalInstance.show();
+    },
+    saveObra() {
+      if (this.editIndex !== null) {
+        this.obras[this.editIndex] = { ...this.form };
+      } else {
+        this.obras.push({ ...this.form });
+      }
+      this.saveToStorage();
+      this.modalInstance.hide();
+    },
+    confirmDelete(index) {
+      this.deleteIndex = index;
+      this.confirmDeleteModal.show();
+    },
+    deleteObra() {
+      if (this.deleteIndex !== null) {
+        this.obras.splice(this.deleteIndex, 1);
+        this.saveToStorage();
+        this.deleteIndex = null;
+      }
+      this.confirmDeleteModal.hide();
+    },
+    loadObras() {
+      const data = localStorage.getItem("obras");
+      if (data) {
+        this.obras = JSON.parse(data);
+      }
+    },
+    saveToStorage() {
+      localStorage.setItem("obras", JSON.stringify(this.obras));
+    },
+    exportCSV() {
+      if (!this.obras.length) return;
+
+      const header = Object.keys(this.obras[0]).join(",");
+      const rows = this.obras.map((obj) =>
+        Object.values(obj)
+          .map((val) => `"${String(val).replace(/"/g, '""')}"`)
+          .join(",")
+      );
+
+      const csvContent = [header, ...rows].join("\n");
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+
+      const link = document.createElement("a");
+      link.setAttribute("href", url);
+      link.setAttribute("download", "obras.csv");
+      link.style.display = "none";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    },
+    handleFileUpload(event) {
+        this.csvFiles = [...event.target.files];
+        console.log(this.csvFiles)
+    },
+    importCSV() {
+      if (!this.csvFiles) return;
+      if(this.uploadReplace) this.obras = [];
+      this.csvFiles.forEach((csvFile) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const text = e.target.result;
+            const [headerLine, ...lines] = text.trim().split("\n");
+            const headers = headerLine.split(",").map((h) => h.trim());
+
+            const newObras = lines.map((line) => {
+            const values = line.split(",").map((v) => v.replace(/^"|"$/g, "").trim());
+            const obra = {};
+            headers.forEach((h, i) => (obra[h] = values[i]));
+            return obra;
+            });
+
+            this.obras.push(...newObras);
+            this.saveToStorage();
+        };
+        reader.readAsText(csvFile);
+      });
+      this.csvFiles = [];
+      this.uploadReplace = false;
+    },
+  },
+  computed: {
+    filteredObras() {
+        const dateStart = this.searchDateStart;
+        const dateEnd = this.searchDateEnd;
+      const query = this.searchQuery.toLowerCase();
+      return this.obras.filter((obra) => { 
+            const obraDate = new Date(obra.data_registro);
+            const validDateStart = (!dateStart) || (new Date(dateStart) <= obraDate);
+            const validDateEnd = (!dateEnd) || (new Date(dateEnd) >= obraDate);
+            const validQuery = Object.values(obra).some((val) => String(val).toLowerCase().includes(query))
+            return validDateStart && validDateEnd && validQuery
+        });
+    },
+  },
+});
+
+app.mount("#app");
