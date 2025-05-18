@@ -20,10 +20,24 @@ const app = Vue.createApp({
     const param = new URLSearchParams(window.location.search).get("data");
     if (param) {
       try {
-        const decoded = JSON.parse(atob(decodeURIComponent(param)));
+        const json = LZString.decompressFromEncodedURIComponent(param);
+        const decoded = JSON.parse(json);
         if (Array.isArray(decoded)) {
-          this.external = true;
-          this.obras.push(...decoded);
+            const normalizadas = decoded.map(o => ({
+                data_registro: o.d,
+                cliente_nome: o.cn,
+                cliente_documento: o.cd,
+                cliente_email: o.ce,
+                cliente_telefone: o.ct,
+                construtor_nome: o.ctn,
+                construtor_telefone: o.ctt,
+                endereco: o.e,
+                endereco_complemento: o.ec,
+                metragem: o.m,
+                etapa: o.et,
+                observacao: o.o,
+            }));
+            this.obras.push(...normalizadas);
         }
       } catch (e) {
         console.error("Erro ao importar dados da URL:", e);
@@ -145,12 +159,26 @@ const app = Vue.createApp({
       this.uploadReplace = false;
     },
     generateShareUrl() {
-      const data = JSON.stringify(this.obras);
-      const encoded = encodeURIComponent(btoa(data));
-      const url = `${window.location.origin}${window.location.pathname}?data=${encoded}`;
-      navigator.clipboard.writeText(url).then(() => {
-        alert("Link copiado para a área de transferência!");
-      });
+        const compactObras = this.obras.map(o => ({
+            d: o.data_registro,
+            cn: o.cliente_nome,
+            cd: o.cliente_documento,
+            ce: o.cliente_email,
+            ct: o.cliente_telefone,
+            ctn: o.construtor_nome,
+            ctt: o.construtor_telefone,
+            e: o.endereco,
+            ec: o.endereco_complemento,
+            m: o.metragem,
+            et: o.etapa,
+            o: o.observacao,
+        }));
+        const json = JSON.stringify(compactObras);
+        const compressed = LZString.compressToEncodedURIComponent(json);
+        const url = `${window.location.origin}${window.location.pathname}?data=${compressed}`;
+        navigator.clipboard.writeText(url).then(() => {
+            alert("Link copiado para a área de transferência!");
+        });
     },
   },
   computed: {
