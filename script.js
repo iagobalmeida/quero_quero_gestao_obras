@@ -20,25 +20,55 @@ const app = Vue.createApp({
     const param = new URLSearchParams(window.location.search).get("data");
     if (param) {
       try {
-        const json = LZString.decompressFromEncodedURIComponent(param);
-        const decoded = JSON.parse(json);
-        if (Array.isArray(decoded)) {
-            const normalizadas = decoded.map(o => ({
-                data_registro: o.d,
-                cliente_nome: o.cn,
-                cliente_documento: o.cd,
-                cliente_email: o.ce,
-                cliente_telefone: o.ct,
-                construtor_nome: o.ctn,
-                construtor_telefone: o.ctt,
-                endereco: o.e,
-                endereco_complemento: o.ec,
-                metragem: o.m,
-                etapa: o.et,
-                observacao: o.o,
-            }));
-            this.obras.push(...normalizadas);
-        }
+        const decompressed = LZString.decompressFromEncodedURIComponent(param);
+        this.obras = decompressed.split(";").map(line => {
+            const [
+                d,
+                cn,
+                cd,
+                ce,
+                ct,
+                ctn,
+                ctt,
+                e,
+                ec,
+                m,
+                et,
+                o,
+            ] = line.split("|");
+            return {
+                data_registro: `20${d}`,
+                cliente_nome: cn,
+                cliente_documento: cd,
+                cliente_email: ce,
+                cliente_telefone: ct,
+                construtor_nome: ctn,
+                construtor_telefone: ctt,
+                endereco: e,
+                endereco_complemento: ec,
+                metragem: m,
+                etapa: this.etapas.indexOf(et),
+                observacao: o,
+            };
+        });
+        // const decoded = JSON.parse(json);
+        // if (Array.isArray(decoded)) {
+        //     const normalizadas = decoded.map(o => ({
+        //         data_registro: o.d,
+        //         cliente_nome: o.cn,
+        //         cliente_documento: o.cd,
+        //         cliente_email: o.ce,
+        //         cliente_telefone: o.ct,
+        //         construtor_nome: o.ctn,
+        //         construtor_telefone: o.ctt,
+        //         endereco: o.e,
+        //         endereco_complemento: o.ec,
+        //         metragem: o.m,
+        //         etapa: this.etapas[o.et],
+        //         observacao: o.o,
+        //     }));
+        //     this.obras.push(...normalizadas);
+        // }
       } catch (e) {
         console.error("Erro ao importar dados da URL:", e);
       }
@@ -159,22 +189,37 @@ const app = Vue.createApp({
       this.uploadReplace = false;
     },
     generateShareUrl() {
-        const compactObras = this.obras.map(o => ({
-            d: o.data_registro,
-            cn: o.cliente_nome,
-            cd: o.cliente_documento,
-            ce: o.cliente_email,
-            ct: o.cliente_telefone,
-            ctn: o.construtor_nome,
-            ctt: o.construtor_telefone,
-            e: o.endereco,
-            ec: o.endereco_complemento,
-            m: o.metragem,
-            et: o.etapa,
-            o: o.observacao,
-        }));
-        const json = JSON.stringify(compactObras);
-        const compressed = LZString.compressToEncodedURIComponent(json);
+        // const compactObras = this.obras.map(o => ({
+        //     d: o.data_registro,
+        //     cn: o.cliente_nome,
+        //     cd: o.cliente_documento,
+        //     ce: o.cliente_email,
+        //     ct: o.cliente_telefone,
+        //     ctn: o.construtor_nome,
+        //     ctt: o.construtor_telefone,
+        //     e: o.endereco,
+        //     ec: o.endereco_complemento,
+        //     m: o.metragem,
+        //     et: this.etapas.indexOf(o.etapa),
+        //     o: o.observacao,
+        // }));
+        // const json = JSON.stringify(compactObras);
+        // const compressed = LZString.compressToEncodedURIComponent(json);
+        const compactObras = this.obras.map(o => [
+            o.data_registro.replace(/^20/, ''),
+            o.cliente_nome,
+            o.cliente_documento,
+            o.cliente_email,
+            o.cliente_telefone,
+            o.construtor_nome,
+            o.construtor_telefone,
+            o.endereco,
+            o.endereco_complemento,
+            o.metragem,
+            this.etapas.indexOf(o.etapa),
+            o.observacao,
+        ].join("|")).join(";");
+        const compressed = LZString.compressToEncodedURIComponent(compactObras);
         const url = `${window.location.origin}${window.location.pathname}?data=${compressed}`;
         navigator.clipboard.writeText(url).then(() => {
             alert("Link copiado para a área de transferência!");
