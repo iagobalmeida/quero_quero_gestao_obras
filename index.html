@@ -20,44 +20,55 @@
         Gestão de Obras
       </h3>
 
-      <hr />
-
-      <div class="d-flex justify-content-end mb-3 gap-2">
-        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#importModal">
-          <span class="material-symbols-outlined align-middle">upload</span>
-          Importar Obras
-        </button>
-        <button class="btn btn-primary" @click="exportCSV">
-          <span class="material-symbols-outlined align-middle">download</span>
-          Baixar Obras
-        </button>
-        <button class="btn btn-primary" @click="openModal()"><span class="material-symbols-outlined">add</span> Nova Obra</button>
+      <div class="alert alert-warning" v-if="external">
+        <h5 class="alert-title mb-0">Visualizando obras de outro usuário</h5>
+        <p class="mb-0">As alterações não serão salvas</p>
       </div>
 
       <hr />
 
+      <div class="d-flex justify-content-end mb-3 gap-2">
+        <button class="btn btn-primary" @click="generateShareUrl">
+          <span class="material-symbols-outlined align-middle">link</span>
+          Compartilhar
+        </button>
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#importModal">
+          <span class="material-symbols-outlined align-middle">upload</span>
+          Importar
+        </button>
+        <button class="btn btn-primary" @click="exportCSV">
+          <span class="material-symbols-outlined align-middle">download</span>
+          Baixar
+        </button>
+        <button class="btn btn-primary" @click="openModal()">
+          <span class="material-symbols-outlined">add</span>
+          Criar
+        </button>
+      </div>
+
+      <hr />
 
       <div class="row mb-3">
         <div class="col-md-3 mb-3">
-            <label class="form-label text-primary">
-                <span class="material-symbols-outlined">calendar_month</span>
-                Data Inicial
-            </label>
-            <input type="date" class="form-control" v-model="searchDateStart" />
+          <label class="form-label text-primary">
+            <span class="material-symbols-outlined">calendar_month</span>
+            Data Inicial
+          </label>
+          <input type="date" class="form-control" v-model="searchDateStart" />
         </div>
         <div class="col-md-3 mb-3">
-            <label class="form-label text-primary">
-                <span class="material-symbols-outlined">calendar_month</span>
-                Data Final
-            </label>
-            <input type="date" class="form-control" v-model="searchDateEnd" />
+          <label class="form-label text-primary">
+            <span class="material-symbols-outlined">calendar_month</span>
+            Data Final
+          </label>
+          <input type="date" class="form-control" v-model="searchDateEnd" />
         </div>
         <div class="col-md-6 mb-3">
-            <label class="form-label text-primary">
-                <span class="material-symbols-outlined">signature</span>
-                Campos
-            </label>
-            <input type="text" class="form-control" placeholder="Pesquisar..." v-model="searchQuery" />
+          <label class="form-label text-primary">
+            <span class="material-symbols-outlined">signature</span>
+            Campos
+          </label>
+          <input type="text" class="form-control" placeholder="Pesquisar..." v-model="searchQuery" />
         </div>
       </div>
 
@@ -134,10 +145,20 @@
                     <label class="form-label"> <span class="material-symbols-outlined">call</span> Cliente Telefone </label>
                     <input type="tel" class="form-control" v-model="form.cliente_telefone" required />
                   </div>
+                </div>
+                <hr />
+                <div class="row">
                   <div class="col-md-6 mb-3">
                     <label class="form-label"> <span class="material-symbols-outlined">engineering</span> Construtor Nome </label>
                     <input type="text" class="form-control" v-model="form.construtor_nome" required />
                   </div>
+                  <div class="col-md-6 mb-3">
+                    <label class="form-label"> <span class="material-symbols-outlined">call</span> Construtor Telefone </label>
+                    <input type="tel" class="form-control" v-model="form.construtor_telefone" required />
+                  </div>
+                </div>
+                <hr />
+                <div class="row">
                   <div class="col-md-6 mb-3">
                     <label class="form-label"> <span class="material-symbols-outlined">location_on</span> Endereço </label>
                     <input type="text" class="form-control" v-model="form.endereco" required />
@@ -146,6 +167,9 @@
                     <label class="form-label"> <span class="material-symbols-outlined">location_city</span> Complemento </label>
                     <input type="text" class="form-control" v-model="form.endereco_complemento" required />
                   </div>
+                </div>
+                <hr />
+                <div class="row">
                   <div class="col-md-6 mb-3">
                     <label class="form-label"> <span class="material-symbols-outlined">straighten</span> Metragem (m²) </label>
                     <input type="number" class="form-control" v-model.number="form.metragem" required />
@@ -200,13 +224,11 @@
             <div class="modal-body">
               <input type="file" class="form-control mb-3" multiple="true" accept=".csv" @change="handleFileUpload" />
               <ul>
-                <li v-for="(csvFile, index) in csvFiles" :key="`csvFile${index}`">
-                    {{csvFile.name}} ({{csvFile.size}} kB)
-                </li>
+                <li v-for="(csvFile, index) in csvFiles" :key="`csvFile${index}`">{{csvFile.name}} ({{csvFile.size}} kB)</li>
               </ul>
               <label class="form-label mb-3">
-                  <input type="checkbox" class="form-checkbox" v-model="uploadReplace" />
-                    Substituir obras atuais?
+                <input type="checkbox" class="form-checkbox" v-model="uploadReplace" />
+                Substituir obras atuais?
               </label>
             </div>
             <div class="modal-footer">

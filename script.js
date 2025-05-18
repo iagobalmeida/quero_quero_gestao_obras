@@ -3,9 +3,10 @@ const app = Vue.createApp({
     return {
       obras: [],
       form: this.getEmptyForm(),
+      external: false,
       searchQuery: "",
       searchDateStart: "",
-        searchDateEnd: "",
+      searchDateEnd: "",
       csvFiles: [],
       uploadReplace: false,
       editIndex: null,
@@ -16,24 +17,38 @@ const app = Vue.createApp({
     };
   },
   mounted() {
-    this.loadObras();
+    const param = new URLSearchParams(window.location.search).get("data");
+    if (param) {
+      try {
+        const decoded = JSON.parse(atob(decodeURIComponent(param)));
+        if (Array.isArray(decoded)) {
+          this.external = true;
+          this.obras.push(...decoded);
+        }
+      } catch (e) {
+        console.error("Erro ao importar dados da URL:", e);
+      }
+    } else {
+      this.loadObras();
+    }
     this.modalInstance = new bootstrap.Modal(document.getElementById("obraModal"));
     this.confirmDeleteModal = new bootstrap.Modal(document.getElementById("confirmDeleteModal"));
   },
   methods: {
     getEmptyForm() {
       return {
-        data_registro: new Date().toISOString().split('T')[0],
+        data_registro: new Date().toISOString().split("T")[0],
         cliente_nome: "",
         cliente_documento: "",
         cliente_email: "",
         cliente_telefone: "",
         construtor_nome: "",
+        construtor_telefone: "",
         endereco: "",
         endereco_complemento: "",
         metragem: "",
         etapa: "",
-        observacao: ""
+        observacao: "",
       };
     },
     openModal(index = null) {
@@ -74,7 +89,9 @@ const app = Vue.createApp({
       }
     },
     saveToStorage() {
-      localStorage.setItem("obras", JSON.stringify(this.obras));
+      if (!this.external) {
+        localStorage.setItem("obras", JSON.stringify(this.obras));
+      }
     },
     exportCSV() {
       if (!this.obras.length) return;
@@ -99,47 +116,55 @@ const app = Vue.createApp({
       document.body.removeChild(link);
     },
     handleFileUpload(event) {
-        this.csvFiles = [...event.target.files];
-        console.log(this.csvFiles)
+      this.csvFiles = [...event.target.files];
+      console.log(this.csvFiles);
     },
     importCSV() {
       if (!this.csvFiles) return;
-      if(this.uploadReplace) this.obras = [];
+      if (this.uploadReplace) this.obras = [];
       this.csvFiles.forEach((csvFile) => {
         const reader = new FileReader();
         reader.onload = (e) => {
-            const text = e.target.result;
-            const [headerLine, ...lines] = text.trim().split("\n");
-            const headers = headerLine.split(",").map((h) => h.trim());
+          const text = e.target.result;
+          const [headerLine, ...lines] = text.trim().split("\n");
+          const headers = headerLine.split(",").map((h) => h.trim());
 
-            const newObras = lines.map((line) => {
+          const newObras = lines.map((line) => {
             const values = line.split(",").map((v) => v.replace(/^"|"$/g, "").trim());
             const obra = {};
             headers.forEach((h, i) => (obra[h] = values[i]));
             return obra;
-            });
+          });
 
-            this.obras.push(...newObras);
-            this.saveToStorage();
+          this.obras.push(...newObras);
+          this.saveToStorage();
         };
         reader.readAsText(csvFile);
       });
       this.csvFiles = [];
       this.uploadReplace = false;
     },
+    generateShareUrl() {
+      const data = JSON.stringify(this.obras);
+      const encoded = encodeURIComponent(btoa(data));
+      const url = `${window.location.origin}${window.location.pathname}?data=${encoded}`;
+      navigator.clipboard.writeText(url).then(() => {
+        alert("Link copiado para a área de transferência!");
+      });
+    },
   },
   computed: {
     filteredObras() {
-        const dateStart = this.searchDateStart;
-        const dateEnd = this.searchDateEnd;
+      const dateStart = this.searchDateStart;
+      const dateEnd = this.searchDateEnd;
       const query = this.searchQuery.toLowerCase();
-      return this.obras.filter((obra) => { 
-            const obraDate = new Date(obra.data_registro);
-            const validDateStart = (!dateStart) || (new Date(dateStart) <= obraDate);
-            const validDateEnd = (!dateEnd) || (new Date(dateEnd) >= obraDate);
-            const validQuery = Object.values(obra).some((val) => String(val).toLowerCase().includes(query))
-            return validDateStart && validDateEnd && validQuery
-        });
+      return this.obras.filter((obra) => {
+        const obraDate = new Date(obra.data_registro);
+        const validDateStart = !dateStart || new Date(dateStart) <= obraDate;
+        const validDateEnd = !dateEnd || new Date(dateEnd) >= obraDate;
+        const validQuery = Object.values(obra).some((val) => String(val).toLowerCase().includes(query));
+        return validDateStart && validDateEnd && validQuery;
+      });
     },
   },
 });

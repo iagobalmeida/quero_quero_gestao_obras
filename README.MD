@@ -6,10 +6,14 @@
 - [X] Importar multiplas tabelas
 - [X] Importar com sobrescrita
 
-- [ ] Refinar campos de cadastro
+- [X] Refinar campos de cadastro
     - [X] Nome do construtor
+    - [X] Telefone do construtor
     - [X] Campo observação
-    - [ ] (Esperar insumo Lucas)
+    - [X] (Esperar insumo Lucas)
+
+- [X] Link de compartilhamento
+    - [X] Prevenir armazenamento em link compartilhado
 
 ## Orçamento
-17/05/2025  -   R$ 300.00
+17/05/2025  -   R$ 375.00
