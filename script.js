@@ -17,7 +17,7 @@ const app = Vue.createApp({
       modalInstance: null,
       deleteIndex: null,
       confirmDeleteModal: null,
-      etapas: ["Orçamento", "Fundação", "Alvenaria", "Acabamento", "Finalizada"],
+      categorias: ["Móveis/Eletro", "Construção", "Tecnologia", "Outros"],
     };
   },
   mounted() {
@@ -29,50 +29,20 @@ const app = Vue.createApp({
             const [
                 d,
                 cn,
-                cd,
-                ce,
                 ct,
-                ctn,
-                ctt,
                 e,
-                ec,
-                m,
-                et,
+                c,
                 o,
             ] = line.split("|");
             return {
                 data_registro: `20${d}`,
                 cliente_nome: cn,
-                cliente_documento: cd,
-                cliente_email: ce,
                 cliente_telefone: ct,
-                construtor_nome: ctn,
-                construtor_telefone: ctt,
                 endereco: e,
-                endereco_complemento: ec,
-                metragem: m,
-                etapa: this.etapas.indexOf(et),
+                categoria: this.categorias.indexOf(c),
                 observacao: o,
             };
         });
-        // const decoded = JSON.parse(json);
-        // if (Array.isArray(decoded)) {
-        //     const normalizadas = decoded.map(o => ({
-        //         data_registro: o.d,
-        //         cliente_nome: o.cn,
-        //         cliente_documento: o.cd,
-        //         cliente_email: o.ce,
-        //         cliente_telefone: o.ct,
-        //         construtor_nome: o.ctn,
-        //         construtor_telefone: o.ctt,
-        //         endereco: o.e,
-        //         endereco_complemento: o.ec,
-        //         metragem: o.m,
-        //         etapa: this.etapas[o.et],
-        //         observacao: o.o,
-        //     }));
-        //     this.obras.push(...normalizadas);
-        // }
       } catch (e) {
         console.error("Erro ao importar dados da URL:", e);
       }
@@ -87,15 +57,9 @@ const app = Vue.createApp({
       return {
         data_registro: new Date().toISOString().split("T")[0],
         cliente_nome: "",
-        cliente_documento: "",
-        cliente_email: "",
         cliente_telefone: "",
-        construtor_nome: "",
-        construtor_telefone: "",
         endereco: "",
-        endereco_complemento: "",
-        metragem: "",
-        etapa: "",
+        categoria: "",
         observacao: "",
       };
     },
@@ -131,9 +95,23 @@ const app = Vue.createApp({
       this.confirmDeleteModal.hide();
     },
     loadObras() {
-      const data = localStorage.getItem("obras");
-      if (data) {
-        this.obras = JSON.parse(data);
+      try{
+        const data = localStorage.getItem("obras");
+        if (data) {
+          data_obras = JSON.parse(data);
+          this.obras = data_obras.map((o) => {
+            const base_obra = this.getEmptyForm();
+            base_obra.data_registro = o['data_registro']
+            base_obra.cliente_nome = o['cliente_nome']
+            base_obra.cliente_telefone = o['cliente_telefone']
+            base_obra.endereco = o['endereco']
+            base_obra.categoria = o['categoria']
+            base_obra.observacao = o['observacao']
+            return base_obra
+          })
+        }
+      } catch(e) {
+        console.log(e);
       }
     },
     saveToStorage() {
@@ -193,34 +171,12 @@ const app = Vue.createApp({
       this.uploadReplace = false;
     },
     generateShareUrl() {
-        // const compactObras = this.obras.map(o => ({
-        //     d: o.data_registro,
-        //     cn: o.cliente_nome,
-        //     cd: o.cliente_documento,
-        //     ce: o.cliente_email,
-        //     ct: o.cliente_telefone,
-        //     ctn: o.construtor_nome,
-        //     ctt: o.construtor_telefone,
-        //     e: o.endereco,
-        //     ec: o.endereco_complemento,
-        //     m: o.metragem,
-        //     et: this.etapas.indexOf(o.etapa),
-        //     o: o.observacao,
-        // }));
-        // const json = JSON.stringify(compactObras);
-        // const compressed = LZString.compressToEncodedURIComponent(json);
         const compactObras = this.obras.map(o => [
             o.data_registro.replace(/^20/, ''),
             o.cliente_nome,
-            o.cliente_documento,
-            o.cliente_email,
             o.cliente_telefone,
-            o.construtor_nome,
-            o.construtor_telefone,
             o.endereco,
-            o.endereco_complemento,
-            o.metragem,
-            this.etapas.indexOf(o.etapa),
+            this.categorias.indexOf(o.categoria),
             o.observacao,
         ].join("|")).join(";");
         const compressed = LZString.compressToEncodedURIComponent(compactObras);
